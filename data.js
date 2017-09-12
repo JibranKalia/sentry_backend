@@ -1,5 +1,6 @@
 const aws4 = require('aws4');
 const http = require('http');
+const db = require('./db.js');
 
 var totalData;
 

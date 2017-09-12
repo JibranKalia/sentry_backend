@@ -1,11 +1,15 @@
 const aws4 = require('aws4');
 const http = require('http');
+const db = require('./db.js')
 
 function pushDB(param, body) {
-    console.log(body);
+	//console.log("body", body);
+	db.createTable(param, body);
+	//db.addentry(param, body);
+	db.scan(param);
 }
 
-function callBucket(param, startTime, endTime) {
+function callBucket(param) {
     // Input AWS access key, secret key, and session token.
     const token = '';
     const accessKeyId = param.accessKeyId;
@@ -13,7 +17,7 @@ function callBucket(param, startTime, endTime) {
     // Get the start and end times for a range of one month.
     const requestBody = JSON.stringify({
         buckets: [param.name],
-        timeRange: [startTime, endTime],
+        timeRange: [param.startTime, param.endTime],
     });
     const header = {
         host: '192.168.99.100',
@@ -52,7 +56,9 @@ function callApi(param){
 	console.log("Option", param.option);
 
     for (let i = param.start; i < param.end; i += param.interval) {
-        callBucket(param, i, nextTimeStamp);
+		param.startTime = i;
+		param.endTime = nextTimeStamp;
+        callBucket(param);
         nextTimeStamp += param.interval;
     }
 

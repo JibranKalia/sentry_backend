@@ -1,69 +1,67 @@
 const aws4 = require('aws4');
 const http = require('http');
-const db = require('./db.js');
+const db = require('./db.js')
 
-var totalData;
-
-function callServiceApi(name, accessKeyId, secretAccessKey, startTime, endTime, cb) {
-	console.log("Service Api called");
-	const token = '';
-	const requestBody = JSON.stringify({
-		service: ['s3'],
-		timeRange: [startTime, endTime],
-	});
-	const header = {
-		host: '192.168.99.100',
-		port: 8100,
-		method: 'POST',
-		service: 's3',
-		path: '/service?Action=ListMetrics',
-		signQuery: false,
-		body: requestBody,
-	};
-	const credentials = { accessKeyId, secretAccessKey, token };
-	const options = aws4.sign(header, credentials);
-	const request = http.request(options, response => {
-		const body = [];
-		response.on('data', chunk => body.push(chunk));
-		response.on('end', () => cb(null, `${body.join('')}`));
-	});
-	request.on('error', e => process.stdout.write(`error: ${e.message}\n`));
-	request.write(requestBody);
-	request.end();
+function pushDB(param, body) {
+	db.createTable(param, body);
+	db.addentry(body);
 }
 
-/** call to bucket api, with authentication and parsing parameters from the form **/
-
-function callBucketApi(param, cb) {
-//	console.log("Bucket Api called");
-	const token = '';
-	const accessKeyId = param.accessKeyId;
+function callBucket(param) {
+	//console.log("start time ", param.startTime);
+	//console.log("end time ", param.endTime);
+    // Input AWS access key, secret key, and session token.
+    const token = '';
+    const accessKeyId = param.accessKeyId;
 	const secretAccessKey = param.secretAccessKey;
+    // Get the start and end times for a range of one month.
+    const requestBody = JSON.stringify({
+        buckets: [param.name],
+        timeRange: [param.startTime, param.endTime],
+    });
+    const header = {
+        host: '192.168.99.100',
+        port: 8100,
+        method: 'POST',
+        service: 's3',
+        path: '/buckets?Action=ListMetrics',
+        signQuery: false,
+        body: requestBody,
+    };
+    const credentials = { accessKeyId, secretAccessKey, token };
+    const options = aws4.sign(header, credentials);
+    const request = http.request(options, response => {
+        const body = [];
+        response.on('data', chunk => body.push(chunk));
+        response.on('end', () => pushDB(param, body.join('')));
+    });
+    request.on('error', e => process.stdout.write(`error: ${e.message}\n`));
+    request.write(requestBody);
+    request.end();
+}
 
-	const requestBody = JSON.stringify({
-		buckets: [param.name],
-		timeRange: [param.startTime, param.endTime],
-	});
-	const header = {
-		host: '192.168.99.100',
-		port: 8100,
-		method: 'POST',
-		service: 's3',
-		path: '/buckets?Action=ListMetrics',
-		signQuery: false,
-		body: requestBody,
-	};
-	const credentials = { accessKeyId, secretAccessKey, token };
-	const options = aws4.sign(header, credentials);
-	const request = http.request(options, (response) => {
-		const body = [];
-		response.on('data', chunk => body.push(chunk));
-			console.log("body", body);
-		response.on('end', () => cb(null, `${body.join('')}`));
-	});
-	request.on('error', e => process.stdout.write(`error: ${e.message}\n`));
-	request.write(requestBody);
-	request.end();
+
+function callApi(param){
+    var callLimit = 10;
+    /** Check if current interval is too small **/
+    if (Math.floor((param.end - param.start) / param.interval) > callLimit) {
+        param.interval = Math.ceil((param.end - param.start) / callLimit);
+    }
+    param.interval = Math.ceil(param.interval / 900000.0) * 900000
+    var nextTimeStamp = param.start + param.interval - 1;
+    console.log("Name", param.name);
+	console.log("Interval", param.interval);
+	console.log("Start", param.start);
+	console.log("End", param.end);
+	console.log("Option", param.option);
+
+    for (let i = param.start; i < param.end; i += param.interval) {
+		param.startTime = i;
+		param.endTime = nextTimeStamp;
+        callBucket(param);
+        nextTimeStamp += param.interval;
+    }
+
 }
 
 function miliseconds(hrs,min)
@@ -71,68 +69,7 @@ function miliseconds(hrs,min)
     return((hrs*60*60+min*60)*1000);
 }
 
-
-/** range to caluclate the interval and make sure doesn't exceed the api call limit **/
-
-function getRange(param, cb) {
-	var objArray = []
-	let callReturned = 0;
-	let numOfCalls = 0;
-	var callLimit = 10;
-	var checkLimit = Math.floor((param.end - param.start) / param.interval);
-	if (checkLimit > callLimit)
-	{
-		Interval = Math.ceil((param.end - param.start) / callLimit);
-	}
-	Interval = Math.ceil(param.interval / 900000.0) * 900000;
-	var Next = param.start + param.interval - 1;
-
-	console.log("Name", param.name);
-	console.log("Interval", param.interval);
-	console.log("Start", param.start);
-	console.log("End", param.end);
-	console.log("Option", param.option);
-
-	if (param.option == 0)
-	{
-		for (var i = param.start; i < param.end; i += param.interval)
-		{
-			callServiceApi(param.name, param.accessKeyId, param.secretAccessKey, i, param.next, function(err, result) {
-				console.log(result);
-				objArray.push(result);
-				callReturned += 1;
-				if (numOfCalls == callReturned) {
-					console.log("API Output", objArray.length)
-					cb(null, objArray);
-				} 
-			});
-			Next += Interval;
-			Next += param.interval;
-			numOfCalls += 1;
-		}
-	}
-	else
-	{
-		for (var i = param.start; i < param.end; i += param.interval)
-		{
-			callBucketApi(param, (result) => {
-				objArray.push(result);
-				callReturned += 1;
-				if (numOfCalls == callReturned) {
-					console.log("API Output", objArray.length)
-					cb(null, objArray);
-				}
-			});
-			Next += param.interval;
-			numOfCalls += 1;
-		}
-	}
-	console.log("Num of Calls " + numOfCalls);
-}
-
-/** time conversions from the timeStamp parameter from form **/
-
-function dateconvert(obj) {
+function setparam(obj) {
 	var param = new Object();
 	param.accessKeyId = obj.accesskey;
 	param.secretAccessKey = obj.secretkey;
@@ -166,10 +103,11 @@ function dateconvert(obj) {
 		Interval = miliseconds(0, 30);
 	param.interval = Interval;
 	param.name = obj.name;
-
-	getRange(param, (objArray) => {
-		console.log(objArray);
+	db.query(param, (err, items) => {
+		console.log(err);
+		console.log(items);
 	});
+//	callApi(param);
 }
 
 function start() {
@@ -179,6 +117,7 @@ function start() {
 	obj.type = 1;
 	obj.interval = '01 month';
 	obj.name = 'utapi-bucket';
-	dateconvert(obj);
+	setparam(obj);
 }
+
 start();

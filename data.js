@@ -3,7 +3,8 @@ const http = require('http');
 const db = require('./db.js')
 
 function pushDB(param, body) {
-	db.createTable(param, body);
+//	console.log(body);
+//	db.createTable(param, body);
 	db.addentry(body);
 }
 
@@ -19,15 +20,15 @@ function callBucket(param) {
         buckets: [param.name],
         timeRange: [param.startTime, param.endTime],
     });
-    const header = {
-        host: '192.168.99.100',
-        port: 8100,
-        method: 'POST',
-        service: 's3',
-        path: '/buckets?Action=ListMetrics',
-        signQuery: false,
-        body: requestBody,
-    };
+	const header = {
+		host: '192.168.99.100',
+		port: 8100,
+		method: 'POST',
+		service: 's3',
+		path: '/buckets?Action=ListMetrics',
+		signQuery: false,
+		body: requestBody,
+	};
     const credentials = { accessKeyId, secretAccessKey, token };
     const options = aws4.sign(header, credentials);
     const request = http.request(options, response => {
@@ -103,14 +104,13 @@ function setparam(obj) {
 		Interval = miliseconds(0, 30);
 	param.interval = Interval;
 	param.name = obj.name;
-	db.query(param, (err, items) => {
-		console.log(err);
-		console.log(items);
-	});
+	db.query2(param).then((items) => console.log(items));
 //	callApi(param);
 }
 
 function start() {
+//	var end = Date.now() + 20000;
+//	while (Date.now() < end) ;
 	var obj = new Object();
 	obj.accesskey = 'accessKey1';
 	obj.secretkey = 'verySecretKey1';

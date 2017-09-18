@@ -2,7 +2,7 @@ const AWS = require("aws-sdk");
 AWS.config.loadFromPath('./config.json');
 AWS.config.update({
     region: "us-west-2",
-    endpoint: "http://localhost:8000"
+    endpoint: "http://localhost:8300/"
 });
 
 const dynamodb = new AWS.DynamoDB();
@@ -80,7 +80,7 @@ module.exports = {
                 console.log("Scan succeeded.", data);
                 data.Items.forEach(function (itemdata) {
                     console.log("Item :", ++count, JSON.stringify(itemdata));
-                });
+            });
 
                 // continue scanning if we have more items
                 if (typeof data.LastEvaluatedKey != "undefined") {
@@ -127,5 +127,61 @@ module.exports = {
             });
         }
         queryExecute(callback);
+    },
+    query1: function (param, callback) {
+        var params = {
+            TableName: dbName,
+            KeyConditionExpression: "#bucketName = :bucketValue and #startTime BETWEEN :from AND :to",
+            ExpressionAttributeNames: {
+                "#bucketName" : "bucketName",
+                "#startTime": "startTime"
+            },
+            ExpressionAttributeValues: {
+                ":bucketValue": param.name,
+                ":from": param.start,
+                ":to": param.end
+            }
+        };
+        var result = []
+        docClient.query(params, function (err, data) {
+            if (err) {
+                console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+                callback(err);
+            } else {
+                data.Items.forEach(function (item) {
+                    result.push(item);
+                });
+                callback(err, result);
+            }
+        });
+    },
+    query2: function (param) {
+        return new Promise((resolve, reject) => {
+            var params = {
+                TableName: dbName,
+                KeyConditionExpression: "#bucketName = :bucketValue and #startTime BETWEEN :from AND :to",
+                ExpressionAttributeNames: {
+                    "#bucketName": "bucketName",
+                    "#startTime": "startTime"
+                },
+                ExpressionAttributeValues: {
+                    ":bucketValue": param.name,
+                    ":from": param.start,
+                    ":to": param.end
+                }
+            };
+            var result = []
+            docClient.query(params, function (err, data) {
+                if (err) {
+                    console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+                    reject(err);
+                } else {
+                    data.Items.forEach(function (item) {
+                        result.push(item);
+                    });
+                    resolve(result);
+                }
+            });
+        });
     }
 };

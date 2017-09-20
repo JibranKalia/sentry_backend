@@ -9,13 +9,15 @@ function pushDB(param, body) {
 }
 
 function callBucket(param, startTime) {
-	//console.log("start time ", param.startTime);
-	//console.log("end time ", param.endTime);
     // Input AWS access key, secret key, and session token.
     const token = '';
-    const accessKeyId = param.accessKeyId;
+    const accessKey = param.accessKey;
 	const secretAccessKey = param.secretAccessKey;
 	const endTime = startTime + param.interval - 1;
+	console.log(startTime);
+	console.log(endTime);
+	console.log(accessKey);
+	console.log(secretAccessKey);
     // Get the start and end times for a range of one month.
     const requestBody = JSON.stringify({
         buckets: [param.name],
@@ -30,12 +32,15 @@ function callBucket(param, startTime) {
 		signQuery: false,
 		body: requestBody,
 	};
-    const credentials = { accessKeyId, secretAccessKey, token };
+    const credentials = { accessKey, secretAccessKey, token };
     const options = aws4.sign(header, credentials);
     const request = http.request(options, response => {
         const body = [];
         response.on('data', chunk => body.push(chunk));
-        response.on('end', () => pushDB(param, body.join('')));
+        response.on('end', () => {
+			body.join('');
+			console.log(body);
+		});
     });
     request.on('error', e => process.stdout.write(`error: ${e.message}\n`));
     request.write(requestBody);
@@ -60,22 +65,7 @@ function callApi(param){
 	{
 		startTimes.push(i);
 	}
-	/*
-    for (let i = param.startTime; i < (param.endTime + param.interval); i += param.interval) {
-		param.startTime = i;
-		param.endTime = nextTimeStamp;
-        callBucket(param);
-        nextTimeStamp += param.interval;
-    }
-
-    for (let i = param.start; i < param.end; i += param.interval) {
-		param.startTime = i;
-		param.endTime = nextTimeStamp;
-        callBucket(param);
-        nextTimeStamp += param.interval;
-    }
-	*/
-
+	callBucket(param, initStartTime);
 }
 
 function miliseconds(hrs,min)
@@ -92,12 +82,6 @@ module.exports.getData = function(obj) {
 	param.startTime = obj.startTime;
 	param.endTime = obj.endTime;
 	param.option = (obj.level == 'Service Level') ? 0 : 1;
-	/*
-	param.start = new Date(obj.dateStart + 'T' + obj.timeStart).getTime();
-	param.start = new Date(2017, 7, 1, 0, 0, 0, 0).getTime();;
-param.end = new Date(obj.dateEnd + 'T' + obj.timeEnd).getTime();
-	param.end = new Date(2017, 8, 1, 0, 0, 0, 0).getTime() - 1;
-	*/
 
 	if (obj.interval == '15 min')
 		param.interval = miliseconds(0, 15);
@@ -119,17 +103,3 @@ param.end = new Date(obj.dateEnd + 'T' + obj.timeEnd).getTime();
 		param.interval = miliseconds(0, 30);
 	callApi(param);
 }
-
-/*
-function start() {
-//	var end = Date.now() + 20000;
-//	while (Date.now() < end) ;
-	var obj = new Object();
-	obj.accessKey = 'accessKey1';
-	obj.secretKey = 'verySecretKey1';
-	obj.level = 0;
-	obj.interval = '01 month';
-	obj.name = 'utapi-bucket';
-	setparam(obj);
-}
-*/

@@ -10,27 +10,9 @@ const docClient = new AWS.DynamoDB.DocumentClient();
 
 
 module.exports = {
-    createTable: function(bucketName) {
-        const params = {
-            TableName: bucketName,
-            KeySchema: [
-                { AttributeName: "bucketName", KeyType: "HASH" },  //Partition key
-                { AttributeName: "startTime", KeyType: "RANGE" }  //Sort key
-            ],
-            AttributeDefinitions: [
-                { AttributeName: "bucketName", AttributeType: "S" },
-                { AttributeName: "startTime", AttributeType: "N" },
-            ],
-            ProvisionedThroughput: {
-                ReadCapacityUnits: 10,
-                WriteCapacityUnits: 10
-            }
-        }
-        return dynamodb.createTable(params).promise();
-    },
-    createTable1: function (bucketName) {
+    createTable: function (bucketName) {
         const tableName = bucketName;
-        const tablePromise = dynamodb.listTables({})
+        return dynamodb.listTables({})
             .promise()
             .then((data) => {
                 const exists = data.TableNames
@@ -58,7 +40,7 @@ module.exports = {
                             WriteCapacityUnits: 10
                         }
                     };
-                    return dynamodb.createTable(params).promise().then();
+                    return dynamodb.createTable(params).promise();
                 }
             });
     },

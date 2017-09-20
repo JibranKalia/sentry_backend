@@ -3,6 +3,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const port = 8200;
 const db = require('./db.js');
+const data = require('./data.js');
 
 app.use(bodyParser.json()); 
 
@@ -15,8 +16,8 @@ app.put('/api', (req, res) => {
   let bucket = body.name;
   db.createTable(bucket)
     .then(() => {
-      console.log("Success");
-      res.send(bucket + " created");
+      data.getData(body);
+      res.send("Done");
     })
     .catch((err) => {
       console.log(err);
@@ -24,3 +25,14 @@ app.put('/api', (req, res) => {
     });
 });
 
+/*
+{
+	"name":"testbucket",
+	"accessKey":"accessKey1",
+	"secretKey":"verySecretKey1",
+  "level":"bucket",
+  "startTime":1501545600000,
+  "endTime":1506815999999,
+	"interval":"01 month"
+}
+*/

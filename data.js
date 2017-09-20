@@ -119,5 +119,3 @@ function start() {
 	obj.name = 'utapi-bucket';
 	setparam(obj);
 }
-
-start();

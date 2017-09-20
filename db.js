@@ -8,12 +8,9 @@ AWS.config.update({
 const dynamodb = new AWS.DynamoDB();
 const docClient = new AWS.DynamoDB.DocumentClient();
 
-const dbName = "testdb";
-
-
 module.exports = {
-    createTable: function (param, body) {
-        const tableName = dbName;
+    createTable: function (bucketName) {
+        const tableName = bucketName;
         const tablePromise = dynamodb.listTables({})
             .promise()
             .then((data) => {
@@ -91,7 +88,7 @@ module.exports = {
             }
         }
     },
-    query: function (param, callback) {
+    queryv1: function (param, callback) {
         console.log("query");
         console.log("Primary Hash", param.name);
         console.log("start Time ", param.start);
@@ -128,7 +125,7 @@ module.exports = {
         }
         queryExecute(callback);
     },
-    query1: function (param, callback) {
+    queryv2: function (param, callback) {
         var params = {
             TableName: dbName,
             KeyConditionExpression: "#bucketName = :bucketValue and #startTime BETWEEN :from AND :to",
@@ -155,7 +152,7 @@ module.exports = {
             }
         });
     },
-    query2: function (param) {
+    query: function (param) {
         return new Promise((resolve, reject) => {
             var params = {
                 TableName: dbName,

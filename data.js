@@ -2,12 +2,6 @@ const aws4 = require('aws4');
 const http = require('http');
 const db = require('./db.js')
 
-function pushDB(param, body) {
-//	console.log(body);
-//	db.createTable(param, body);
-	db.addentry(body);
-}
-
 function callBucket(param, startTime) {
   return new Promise((resolve, reject) => {
     // Input AWS access key, secret key, and session token.
@@ -66,13 +60,25 @@ function callApi(param) {
     for (let i = initStartTime; i < finalEndTime; i += param.interval) {
       startTimes.push(i);
 	}
-    let arrayOfPromises = startTimes.map((startTime) => {
-	  callBucket(param, startTime)
-	  .then((body) => db.addentry(body));
-	});
+	var arrayOfPromises = startTimes.map((startTime) => callBucket(param, startTime));
+	  //.then((body) => db.addentry(body));
+
+
 	return Promise.all(arrayOfPromises)
-	.then(() => console.log("test"));
+	.then(data => {
+		return data.map((body) => db.addentry(body))
+	});
+
 	/*
+	Promise.all(promises)
+  .then(data => {
+    console.log("First handler", data);
+    return data.map(entry => entry * 10);
+  })
+  .then(data => {
+    console.log("Second handler", data);
+  });
+	//.then(() => console.log("test"));
 	.then((results) => {
 		results.forEach(function(element) {
 			console.log(element);

@@ -68,10 +68,10 @@ module.exports.getData = function getData(obj) {
   const param = {};
   param.name = obj.name;
   param.accessKey = obj.accessKey;
-  param.secretAccessKey = obj.secretKey;
-  param.startTime = obj.startTime;
-  param.endTime = obj.endTime;
-  param.option = (obj.level === 'Service Level') ? 0 : 1;
+  param.secretAccessKey = obj.secretAccessKey;
+  param.startTime = obj.epochStart;
+  param.endTime = obj.epochEnd;
+  param.level = (obj.level === 'Service Level') ? 0 : 1;
   if (obj.interval === '15 min') { param.interval = miliseconds(0, 15); } else if (obj.interval === '30 min') { param.interval = miliseconds(0, 30); } else if (obj.interval === '01 hr') { param.interval = miliseconds(1, 0); } else if (obj.interval === '06 hrs') { param.interval = miliseconds(6, 0); } else if (obj.interval === '12 hrs') { param.interval = miliseconds(12, 0); } else if (obj.interval === '01 day') { param.interval = miliseconds(24, 0); } else if (obj.interval === '15 days') { param.interval = miliseconds(360, 0); } else if (obj.interval === '01 month') { param.interval = miliseconds(720, 15); } else { param.interval = miliseconds(0, 30); }
   return callApi(param);
 };

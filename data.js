@@ -9,103 +9,80 @@ function pushDB(param, body) {
 }
 
 function callBucket(param, startTime) {
+  return new Promise((resolve, reject) => {
     // Input AWS access key, secret key, and session token.
-    const token = '';
+    const token = "";
     const accessKey = param.accessKey;
-	const secretAccessKey = param.secretAccessKey;
+    const secretAccessKey = param.secretAccessKey;
 	const endTime = startTime + param.interval - 1;
-	console.log(startTime);
-	console.log(endTime);
+    console.log(startTime);
+	/*
+    console.log(endTime);
 	console.log(accessKey);
 	console.log(secretAccessKey);
+	*/
     // Get the start and end times for a range of one month.
     const requestBody = JSON.stringify({
-        buckets: [param.name],
-        timeRange: [startTime, endTime],
+      buckets: [param.name],
+      timeRange: [startTime, endTime]
     });
-	const header = {
-		host: '192.168.99.100',
-		port: 8100,
-		method: 'POST',
-		service: 's3',
-		path: '/buckets?Action=ListMetrics',
-		signQuery: false,
-		body: requestBody,
-	};
+    const header = {
+      host: "192.168.99.100",
+      port: 8100,
+      method: "POST",
+      service: "s3",
+      path: "/buckets?Action=ListMetrics",
+      signQuery: false,
+      body: requestBody
+    };
     const credentials = { accessKey, secretAccessKey, token };
     const options = aws4.sign(header, credentials);
     const request = http.request(options, response => {
-        const body = [];
-        response.on('data', chunk => body.push(chunk));
-        response.on('end', () => {
-			body.join('');
-			console.log(body);
-		});
-    });
-    request.on('error', e => process.stdout.write(`error: ${e.message}\n`));
+      const body = [];
+      response.on("data", chunk => body.push(chunk));
+      response.on("end", () => resolve(body.join("")));
+	});
+	request.on('error', (err) => reject(err))	
     request.write(requestBody);
     request.end();
+  });
 }
 
-function callBucket1(param, startTime) {
-
-	// Input AWS access key, secret key, and session token.
-	const accessKeyId = 'accessKey1';
-	const secretAccessKey = 'verySecretKey1';
-	const token = '';
-	const bucketName = 'utapi-bucket';
-	// Get the start and end times for a range of one month.
-	//const startTime = new Date(2017, 7, 1, 0, 0, 0, 0).getTime();
-	const endTime = new Date(2017, 8, 1, 0, 0, 0, 0).getTime() - 1;
-	console.log(startTime);
-	console.log(endTime);
-	console.log(accessKeyId);
-	console.log(secretAccessKey);
-	const requestBody = JSON.stringify({
-		buckets: [bucketName],
-		timeRange: [startTime, endTime],
-	});
-	const header = {
-		host: '192.168.99.100',
-		port: 8100,
-		method: 'POST',
-		service: 's3',
-		path: '/buckets?Action=ListMetrics',
-		signQuery: false,
-		body: requestBody,
-	};
-	const credentials = { accessKeyId, secretAccessKey, token };
-	const options = aws4.sign(header, credentials);
-	const request = http.request(options, response => {
-		const body = [];
-		response.on('data', chunk => body.push(chunk));
-		response.on('end', () => process.stdout.write(`${body.join('')}\n`));
-	});
-	request.on('error', e => process.stdout.write(`error: ${e.message}\n`));
-	request.write(requestBody);
-	request.end();
-}
-
-
-function callApi(param){
+function callApi(param) {
     let callLimit = 10;
-	let startTimes = [];
-	const initStartTime = param.startTime;
-	const finalEndTime = param.endTime;
-	param.startTime = undefined;
-	param.endTime = undefined;
-	
+    let startTimes = [];
+    const initStartTime = param.startTime;
+    const finalEndTime = param.endTime;
+    param.startTime = undefined;
+    param.endTime = undefined;
+
     /** Check if current interval is too small **/
-    if (Math.floor((finalEndTime - initStartTime) / param.interval) > callLimit) {
-        param.interval = Math.ceil((finalEndTime - initStartTime) / callLimit);
+    if (
+      Math.floor((finalEndTime - initStartTime) / param.interval) > callLimit
+    ) {
+      param.interval = Math.ceil((finalEndTime - initStartTime) / callLimit);
     }
     param.interval = Math.ceil(param.interval / 900000.0) * 900000;
-	for (let i = initStartTime; i < finalEndTime ; i += param.interval)
-	{
-		startTimes.push(i);
+    for (let i = initStartTime; i < finalEndTime; i += param.interval) {
+      startTimes.push(i);
 	}
-	callBucket1(param, initStartTime);
-}
+    let arrayOfPromises = startTimes.map((startTime) => {
+	  callBucket(param, startTime)
+	  .then((body) => db.addentry(body));
+	});
+	return Promise.all(arrayOfPromises)
+	.then(() => console.log("test"));
+	/*
+	.then((results) => {
+		results.forEach(function(element) {
+			console.log(element);
+			db.addentry(element);
+		});
+	})
+	.then(() => console.log("test"));
+	*/
+  };
+
 
 function miliseconds(hrs,min)
 {
@@ -140,5 +117,5 @@ module.exports.getData = function(obj) {
 		param.interval = miliseconds(720, 15);
 	else
 		param.interval = miliseconds(0, 30);
-	callApi(param);
+	return callApi(param);
 }

@@ -15,10 +15,9 @@ app.put('/api', (req, res) => {
   let body = req.body
   let bucket = body.name;
   db.createTable(bucket)
-    .then(() => {
-      data.getData(body);
-      res.send("Done");
-    })
+    .then(() => data.getData(body))
+    .then(() => console.log("hi"))
+    .then(() => res.send("done"))
     .catch((err) => {
       console.log(err);
       res.status(500).send(err);

@@ -45,6 +45,8 @@ module.exports = {
             });
     },
     addentry: function (body) {
+        return new Promise((resolve, reject) => {
+        //console.log(body);
         body = JSON.parse(body)[0];
         const params = {
             TableName: body.bucketName,
@@ -54,7 +56,15 @@ module.exports = {
                 "data": body
             }
         };
-        return docClient.put(params).promise();
+        docClient.put(params, function (err, data) {
+            if (err) {
+                reject(err);
+            } else {
+                console.log("PutItem succeeded:", body.timeRange[0]);
+                resolve("done");
+            }
+        });
+        });
     },
     query: function (param) {
         return new Promise((resolve, reject) => {

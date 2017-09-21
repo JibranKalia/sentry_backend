@@ -11,84 +11,81 @@ const docClient = new AWS.DynamoDB.DocumentClient();
 
 
 module.exports = {
-  createTable (bucketName) {
+  createTable(bucketName) {
     const tableName = bucketName;
     return dynamodb.listTables({})
       .promise()
       .then((data) => {
         const exists = data.TableNames
-          .filter(name => {
-            return name === tableName;
-          })
+          .filter(name => name === tableName)
           .length > 0;
         if (exists) {
           return Promise.resolve();
         }
-        else {
-          console.log('Creating Table');
-          const params = {
-            TableName: tableName,
-            KeySchema: [
-              { AttributeName: "bucketName", KeyType: "HASH" },  //Partition key
-              { AttributeName: "startTime", KeyType: "RANGE" }  //Sort key
-            ],
-            AttributeDefinitions: [
-              { AttributeName: "bucketName", AttributeType: "S" },
-              { AttributeName: "startTime", AttributeType: "N" },
-            ],
-            ProvisionedThroughput: {
-              ReadCapacityUnits: 10,
-              WriteCapacityUnits: 10
-            }
-          };
-          return dynamodb.createTable(params).promise();
-        }
+
+        console.log('Creating Table');
+        const params = {
+          TableName: tableName,
+          KeySchema: [
+            { AttributeName: 'bucketName', KeyType: 'HASH' }, // Partition key
+            { AttributeName: 'startTime', KeyType: 'RANGE' }, // Sort key
+          ],
+          AttributeDefinitions: [
+            { AttributeName: 'bucketName', AttributeType: 'S' },
+            { AttributeName: 'startTime', AttributeType: 'N' },
+          ],
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 10,
+            WriteCapacityUnits: 10,
+          },
+        };
+        return dynamodb.createTable(params).promise();
       });
   },
-  addentry (body) {
+  addentry(body) {
     return new Promise((resolve, reject) => {
-      //console.log(body);
+      // console.log(body);
       body = JSON.parse(body)[0];
       const params = {
         TableName: body.bucketName,
         Item: {
-          "bucketName" : body.bucketName,
-          "startTime": body.timeRange[0],
-          "data": body
-        }
+          bucketName: body.bucketName,
+          startTime: body.timeRange[0],
+          data: body,
+        },
       };
-      docClient.put(params, function (err, data) {
+      docClient.put(params, (err, data) => {
         if (err) {
           reject(err);
         } else {
-          console.log("PutItem succeeded:", body.timeRange[0]);
-          resolve("done");
+          console.log('PutItem succeeded:', body.timeRange[0]);
+          resolve('done');
         }
       });
     });
   },
-  query (param) {
+  query(param) {
     return new Promise((resolve, reject) => {
-      var params = {
-        TableName: dbName,
-        KeyConditionExpression: "#bucketName = :bucketValue and #startTime BETWEEN :from AND :to",
+      const params = {
+        TableName: param.name,
+        KeyConditionExpression: '#bucketName = :bucketValue and #startTime BETWEEN :from AND :to',
         ExpressionAttributeNames: {
-          "#bucketName": "bucketName",
-          "#startTime": "startTime"
+          '#bucketName': 'bucketName',
+          '#startTime': 'startTime',
         },
         ExpressionAttributeValues: {
-          ":bucketValue": param.name,
-          ":from": param.start,
-          ":to": param.end
-        }
+          ':bucketValue': param.name,
+          ':from': param.start,
+          ':to': param.end,
+        },
       };
-      var result = []
-      docClient.query(params, function (err, data) {
+      const result = [];
+      docClient.query(params, (err, data) => {
         if (err) {
-          console.error("Unable to query. Error:", JSON.stringify(err, null, 2));
+          console.error('Unable to query. Error:', JSON.stringify(err, null, 2));
           reject(err);
         } else {
-          data.Items.forEach(function (item) {
+          data.Items.forEach((item) => {
             result.push(item);
           });
           resolve(result);

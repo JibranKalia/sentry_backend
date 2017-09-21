@@ -1,6 +1,6 @@
 const aws4 = require('aws4');
 const http = require('http');
-const db = require('./db.js');
+const db = require('../config/database.js');
 
 function callBucket(param, startTime) {
   return new Promise((resolve, reject) => {

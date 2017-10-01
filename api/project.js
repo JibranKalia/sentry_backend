@@ -1,6 +1,6 @@
 const aws4 = require('aws4');
 const http = require('http');
-const db = require('../config/database.js');
+const database = require('../config/database.js');
 
 function callBucket(param, startTime) {
   return new Promise((resolve, reject) => {
@@ -52,11 +52,10 @@ function callApi(param) {
   for (let i = initStartTime; i < finalEndTime; i += param.interval) {
     startTimes.push(i);
   }
+  // TODO: Waiting to put every object in DB before returning JSON. Good or bad???
+  const arrayOfPromises = startTimes.map(startTime => callBucket(param, startTime).then(out => database.addentry(out)));
 
-  const arrayOfPromises = startTimes.map(startTime => callBucket(param, startTime));
-
-  return Promise.all(arrayOfPromises)
-    .then(data => data.map(body => db.addentry(body)));
+  return Promise.all(arrayOfPromises);
 }
 
 
@@ -64,7 +63,7 @@ function miliseconds(hrs, min) {
   return ((hrs * 60 * 60 + min * 60) * 1000);
 }
 
-module.exports.getData = function getData(obj) {
+function getData(obj) {
   const param = {};
   param.name = obj.name;
   param.accessKey = obj.accessKey;
@@ -74,4 +73,22 @@ module.exports.getData = function getData(obj) {
   param.level = (obj.level === 'Service Level') ? 0 : 1;
   if (obj.interval === '15 min') { param.interval = miliseconds(0, 15); } else if (obj.interval === '30 min') { param.interval = miliseconds(0, 30); } else if (obj.interval === '01 hr') { param.interval = miliseconds(1, 0); } else if (obj.interval === '06 hrs') { param.interval = miliseconds(6, 0); } else if (obj.interval === '12 hrs') { param.interval = miliseconds(12, 0); } else if (obj.interval === '01 day') { param.interval = miliseconds(24, 0); } else if (obj.interval === '15 days') { param.interval = miliseconds(360, 0); } else if (obj.interval === '01 month') { param.interval = miliseconds(720, 15); } else { param.interval = miliseconds(0, 30); }
   return callApi(param);
+}
+
+// TODO: out.length needs better logic
+
+module.exports.handleReq = function handleReq(param) {
+  return database.query(param)
+    .then((out) => {
+      if (out.length < 5) {
+        return getData(param);
+      }
+      return out;
+    })
+    .catch((err) => {
+      if (err.message === 'Cannot do operations on a non-existent table') { 
+        return database.createTable(param.name).then(() => getData(param));
+      }
+      return (err);
+    });
 };

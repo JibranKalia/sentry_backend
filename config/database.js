@@ -11,6 +11,17 @@ const docClient = new AWS.DynamoDB.DocumentClient();
 
 
 module.exports = {
+  checkTable(bucketName) {
+    const tableName = bucketName;
+    return dynamodb.listTables({})
+      .promise()
+      .then((data) => {
+        const exists = data.TableNames
+          .filter(name => name === tableName)
+          .length > 0;
+        return Promise.resolve(exists);
+      });
+  },
   createTable(bucketName) {
     const tableName = bucketName;
     return dynamodb.listTables({})
@@ -59,7 +70,7 @@ module.exports = {
           reject(err);
         } else {
           console.log('PutItem succeeded:', body.timeRange[0]);
-          resolve('done');
+          resolve(body);
         }
       });
     });
@@ -75,11 +86,12 @@ module.exports = {
         },
         ExpressionAttributeValues: {
           ':bucketValue': param.name,
-          ':from': param.start,
-          ':to': param.end,
+          ':from': param.epochStart,
+          ':to': param.epochEnd,
         },
       };
       const result = [];
+      const finalresult = [];
       docClient.query(params, (err, data) => {
         if (err) {
           console.error('Unable to query. Error:', JSON.stringify(err, null, 2));
@@ -88,7 +100,10 @@ module.exports = {
           data.Items.forEach((item) => {
             result.push(item);
           });
-          resolve(result);
+          for (let i = 0; i < result.length; i++) {
+            finalresult.push(result[i].data);
+          }
+          resolve(finalresult);
         }
       });
     });

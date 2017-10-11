@@ -3,7 +3,7 @@ const AWS = require('aws-sdk');
 AWS.config.loadFromPath('./config.json');
 AWS.config.update({
   region: 'us-west-2',
-  endpoint: 'http://localhost:8300/',
+  endpoint: 'http://dynamodb:8300/',
 });
 
 const dynamodb = new AWS.DynamoDB();

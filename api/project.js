@@ -15,7 +15,7 @@ function callBucket(param, startTime) {
       timeRange: [startTime, endTime],
     });
     const header = {
-      host: '192.168.99.100',
+      host: 's3',
       port: 8100,
       method: 'POST',
       service: 's3',

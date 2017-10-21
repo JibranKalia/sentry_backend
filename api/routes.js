@@ -19,6 +19,9 @@ router.post('/api', (req, res) => {
     });
 });
 */
+router.get('/api', (req, res) => {
+  res.send('Sentry Backend is live');
+});
 
 router.post('/api', (req, res) => {
   const body = req.body.timeRange;
